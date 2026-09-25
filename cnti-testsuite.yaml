@@ -1,0 +1,11 @@
+---
+# CNTi Test Suite configuration for the open5gs umbrella chart in this
+# repository; the values in ci/cnti-values.yaml select the 5G core and
+# make it runnable on a hosted runner.
+config_version: "v2"
+deployments:
+  helm_dirs:
+    - name: open5gs
+      helm_directory: charts/open5gs
+      namespace: open5gs
+      helm_values: -f ci/cnti-values.yaml

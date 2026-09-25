@@ -1,0 +1,62 @@
+name: CNTi cert (open5gs)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cnti-cert
+  cancel-in-progress: false
+
+jobs:
+  cert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      # Thirteen workloads share the runner's four cores: scaling and
+      # rollouts take longer than the suite's 60-second default.
+      CNTI_TESTSUITE_GENERIC_OPERATION_TIMEOUT: "180"
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Every image comes from Docker Hub; a login lifts the anonymous
+      # pull limit when the secrets exist and is skipped otherwise.
+      - name: Login to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_PASSWORD != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_PASSWORD }}
+
+      # The umbrella depends on the sibling charts by file:// reference and
+      # on Bitnami for MongoDB and common.
+      - name: Build chart dependencies
+        run: |
+          set -euo pipefail
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build charts/open5gs
+
+      - uses: lfn-cnti/testsuite-action@v1
+        with:
+          version: v2.1.0
+          cnf_config: cnti-testsuite.yaml
+          install_timeout: 900
+          tests: cert
+
+      # Why did a function not come up? Pod state, events and logs from the
+      # kind cluster the action created; it lives until the job ends.
+      - name: Diagnostics
+        if: failure()
+        run: |
+          set +e
+          echo "::group::pods"; kubectl get pods -A -o wide; echo "::endgroup::"
+          echo "::group::node allocation"; kubectl describe nodes | grep -A9 "Allocated resources"; echo "::endgroup::"
+          for pod in $(kubectl get pods -n open5gs -o name); do
+            echo "::group::describe $pod"; kubectl describe -n open5gs "$pod" | tail -60; echo "::endgroup::"
+            echo "::group::logs $pod"; kubectl logs -n open5gs "$pod" --all-containers --tail=60; echo "::endgroup::"
+          done
+          echo "::group::events"; kubectl get events -n open5gs --sort-by=.lastTimestamp | tail -60; echo "::endgroup::"
