@@ -3,6 +3,10 @@
 # repository; the values in ci/cnti-values.yaml select the 5G core and
 # make it runnable on a hosted runner.
 config_version: "v2"
+common:
+  # The SMF hands UEs a public resolver; that literal address is on purpose.
+  hardcoded_ip_exceptions:
+    - ip: 8.8.8.8
 deployments:
   helm_dirs:
     - name: open5gs

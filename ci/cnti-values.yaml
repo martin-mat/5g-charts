@@ -3,7 +3,8 @@
 # and without persistence, every function started as PID 1 through the
 # chart's command knob instead of the image entrypoint (which keeps a shell
 # in front of the daemon), probes on the UPF, and resource requests sized
-# for a 4-vCPU hosted runner.
+# for a 4-vCPU hosted runner. The SMF does not look for a PCRF: that is
+# the 4G Gx path, and the PCRF is not deployed.
 hss:
   enabled: false
 mme:
@@ -144,6 +145,9 @@ smf:
     limits:
       cpu: 500m
       memory: 512Mi
+  config:
+    pcrf:
+      enabled: false
 udm:
   command:
   - open5gs-udmd
