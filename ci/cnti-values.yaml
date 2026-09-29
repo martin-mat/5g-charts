@@ -1,10 +1,3 @@
-# Values for the CNTi Test Suite run of the open5gs umbrella chart: the 5G
-# core only (no EPC parts, WebUI or subscriber population), MongoDB pinned
-# and without persistence, every function started as PID 1 through the
-# chart's command knob instead of the image entrypoint (which keeps a shell
-# in front of the daemon), probes on the UPF, and resource requests sized
-# for a 4-vCPU hosted runner. The SMF does not look for a PCRF: that is
-# the 4G Gx path, and the PCRF is not deployed.
 hss:
   enabled: false
 mme:
@@ -29,11 +22,6 @@ mongodb:
     repository: bitnamilegacy/mongodb
     tag: 8.0.13-debian-12-r0
 amf:
-  command:
-  - open5gs-amfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/amf.yaml
   resources:
     requests:
       cpu: 100m
@@ -41,14 +29,7 @@ amf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 ausf:
-  command:
-  - open5gs-ausfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/ausf.yaml
   resources:
     requests:
       cpu: 100m
@@ -56,14 +37,7 @@ ausf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 bsf:
-  command:
-  - open5gs-bsfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/bsf.yaml
   resources:
     requests:
       cpu: 100m
@@ -71,14 +45,7 @@ bsf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 nrf:
-  command:
-  - open5gs-nrfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/nrf.yaml
   resources:
     requests:
       cpu: 100m
@@ -86,14 +53,7 @@ nrf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 nssf:
-  command:
-  - open5gs-nssfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/nssf.yaml
   resources:
     requests:
       cpu: 100m
@@ -101,14 +61,7 @@ nssf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 pcf:
-  command:
-  - open5gs-pcfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/pcf.yaml
   resources:
     requests:
       cpu: 100m
@@ -116,14 +69,7 @@ pcf:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 scp:
-  command:
-  - open5gs-scpd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/scp.yaml
   resources:
     requests:
       cpu: 100m
@@ -131,14 +77,7 @@ scp:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 sepp:
-  command:
-  - open5gs-seppd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/sepp.yaml
   resources:
     requests:
       cpu: 100m
@@ -146,14 +85,7 @@ sepp:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 smf:
-  command:
-  - open5gs-smfd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/smf.yaml
   resources:
     requests:
       cpu: 100m
@@ -164,14 +96,7 @@ smf:
   config:
     pcrf:
       enabled: false
-  containerSecurityContext:
-    runAsGroup: 999
 udm:
-  command:
-  - open5gs-udmd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/udm.yaml
   resources:
     requests:
       cpu: 100m
@@ -179,14 +104,7 @@ udm:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 udr:
-  command:
-  - open5gs-udrd
-  args:
-  - -c
-  - /opt/open5gs/etc/open5gs/udr.yaml
   resources:
     requests:
       cpu: 100m
@@ -194,8 +112,6 @@ udr:
     limits:
       cpu: 500m
       memory: 512Mi
-  containerSecurityContext:
-    runAsGroup: 999
 upf:
   resources:
     requests:
@@ -204,19 +120,3 @@ upf:
     limits:
       cpu: '1'
       memory: 512Mi
-  customLivenessProbe:
-    exec:
-      command:
-      - pgrep
-      - -x
-      - open5gs-upfd
-    initialDelaySeconds: 10
-    periodSeconds: 10
-  customReadinessProbe:
-    exec:
-      command:
-      - pgrep
-      - -x
-      - open5gs-upfd
-    initialDelaySeconds: 5
-    periodSeconds: 10
