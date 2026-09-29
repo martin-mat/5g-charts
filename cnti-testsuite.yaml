@@ -4,9 +4,13 @@
 # make it runnable on a hosted runner.
 config_version: "v2"
 common:
-  # The SMF hands UEs a public resolver; that literal address is on purpose.
+  # Addresses of the mobile data plane, set per deployment in the SMF and UPF
+  # values, not Kubernetes networking: the resolvers the SMF hands to UEs,
+  # and the gateway of the UE pool, which the UPF puts on its ogstun device.
   hardcoded_ip_exceptions:
     - ip: 8.8.8.8
+    - ip: 8.8.4.4
+    - ip: 10.45.0.1
 deployments:
   helm_dirs:
     - name: open5gs
