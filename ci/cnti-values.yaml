@@ -41,6 +41,8 @@ amf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 ausf:
   command:
   - open5gs-ausfd
@@ -54,6 +56,8 @@ ausf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 bsf:
   command:
   - open5gs-bsfd
@@ -67,6 +71,8 @@ bsf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 nrf:
   command:
   - open5gs-nrfd
@@ -80,6 +86,8 @@ nrf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 nssf:
   command:
   - open5gs-nssfd
@@ -93,6 +101,8 @@ nssf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 pcf:
   command:
   - open5gs-pcfd
@@ -106,6 +116,8 @@ pcf:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 scp:
   command:
   - open5gs-scpd
@@ -119,6 +131,8 @@ scp:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 sepp:
   command:
   - open5gs-seppd
@@ -132,6 +146,8 @@ sepp:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 smf:
   command:
   - open5gs-smfd
@@ -148,6 +164,8 @@ smf:
   config:
     pcrf:
       enabled: false
+  containerSecurityContext:
+    runAsGroup: 999
 udm:
   command:
   - open5gs-udmd
@@ -161,6 +179,8 @@ udm:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 udr:
   command:
   - open5gs-udrd
@@ -174,6 +194,8 @@ udr:
     limits:
       cpu: 500m
       memory: 512Mi
+  containerSecurityContext:
+    runAsGroup: 999
 upf:
   resources:
     requests:
