@@ -1,0 +1,40 @@
+name: measure-idle
+on: {push: {branches: [measure-idle]}}
+jobs:
+  m:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_PASSWORD != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_PASSWORD }}
+      - run: |
+          cat > kind.yaml <<'K'
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes: [{role: control-plane}, {role: worker}, {role: worker}]
+          K
+          kind create cluster --config kind.yaml --wait 120s
+      - name: install the umbrella chart with its defaults
+        run: |
+          set +e
+          helm dependency build charts/open5gs
+          helm install open5gs charts/open5gs -n open5gs --create-namespace -f ci/measure-values.yaml --wait --timeout 10m
+          echo "helm exit=$?"
+          kubectl get pods -n open5gs -o custom-columns=NAME:.metadata.name,READY:.status.containerStatuses[0].ready,QOS:.status.qosClass,REQ:.spec.containers[0].resources.requests,LIM:.spec.containers[0].resources.limits
+      - name: measure
+        run: |
+          set +e
+          sleep 300
+          snap() { for d in $(kubectl get deploy -n open5gs -o name | sed 's#.*/##'); do echo "$d $(kubectl exec -n open5gs deploy/$d -- sh -c 'cat /sys/fs/cgroup/memory.current; cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo 0; grep usage_usec /sys/fs/cgroup/cpu.stat' 2>/dev/null | tr '\n' ' ')"; done; }
+          snap > a.txt; sleep 120; snap > b.txt
+          echo "function  mem_now_Mi  mem_peak_Mi  cpu_millicores(avg over 120s)"
+          join a.txt b.txt | awk 'NF>=9{printf "%-22s %8.1f %8.1f %8.1f\n", $1, $6/1048576, $7/1048576, ($9-$5)/120/1000}'
+          kubectl get pods -n open5gs
