@@ -32,9 +32,9 @@ jobs:
       - name: measure
         run: |
           set +e
-          sleep 300
-          snap() { for d in $(kubectl get deploy -n open5gs -o name | sed 's#.*/##'); do echo "$d $(kubectl exec -n open5gs deploy/$d -- sh -c 'cat /sys/fs/cgroup/memory.current; cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo 0; grep usage_usec /sys/fs/cgroup/cpu.stat' 2>/dev/null | tr '\n' ' ')"; done; }
-          snap > a.txt; sleep 120; snap > b.txt
-          echo "function  mem_now_Mi  mem_peak_Mi  cpu_millicores(avg over 120s)"
-          join a.txt b.txt | awk 'NF>=9{printf "%-22s %8.1f %8.1f %8.1f\n", $1, $6/1048576, $7/1048576, ($9-$5)/120/1000}'
-          kubectl get pods -n open5gs
+          sleep 240
+          echo "function anon_Mi file_Mi shmem_Mi kernel_Mi rss_of_pid1_Mi"
+          for d in $(kubectl get deploy -n open5gs -o name | sed 's#.*/##'); do
+            kubectl exec -n open5gs deploy/$d -- sh -c 'awk -v d='$d' "/^anon /{a=\$2} /^file /{f=\$2} /^shmem /{s=\$2} /^kernel /{k=\$2} END{printf \"%-20s %8.1f %8.1f %8.1f %8.1f \", d, a/1048576, f/1048576, s/1048576, k/1048576}" /sys/fs/cgroup/memory.stat; awk "/VmRSS/{printf \"%8.1f\\n\", \$2/1024}" /proc/1/status' 2>/dev/null
+          done
+          echo "=== upf"; kubectl exec -n open5gs deploy/open5gs-upf -- sh -c 'ps -eo pid,rss,vsz,comm | head; df -h /dev/shm /tmp 2>/dev/null | tail -2; ls -la /var/log/open5gs /opt/open5gs/var/log/open5gs 2>/dev/null | tail -4'
