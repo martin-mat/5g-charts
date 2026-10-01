@@ -106,8 +106,8 @@ Helm chart to deploy Open5gs UPF service on Kubernetes.
 | podSecurityContext.fsGroup | int | `1001` |  |
 | priorityClassName | string | `""` |  |
 | replicaCount | int | `1` |  |
-| resources.limits | object | `{}` |  |
-| resources.requests | object | `{}` |  |
+| resources.limits | object | `{"cpu":"1","memory":"512Mi"}` |  |
+| resources.requests | object | `{"cpu":"50m","memory":"64Mi"}` |  |
 | schedulerName | string | `""` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.automountServiceAccountToken | bool | `true` |  |

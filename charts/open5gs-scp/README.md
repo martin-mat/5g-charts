@@ -100,8 +100,8 @@ Helm chart to deploy Open5gs scp service on Kubernetes.
 | readinessProbe.successThreshold | int | `1` |  |
 | readinessProbe.timeoutSeconds | int | `1` |  |
 | replicaCount | int | `1` |  |
-| resources.limits | object | `{}` |  |
-| resources.requests | object | `{}` |  |
+| resources.limits | object | `{"cpu":"500m","memory":"512Mi"}` |  |
+| resources.requests | object | `{"cpu":"50m","memory":"64Mi"}` |  |
 | schedulerName | string | `""` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.automountServiceAccountToken | bool | `true` |  |

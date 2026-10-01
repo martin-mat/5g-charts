@@ -8,6 +8,15 @@ populate:
     tag: 0.10.3
     pullPolicy: IfNotPresent
   initCommands: []
+  # Requests and limits of the populate container, which only keeps the pod
+  # running after its init container has written the subscribers.
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
   # example of initCommands:
   #  - open5gs-dbctl add 999700000000001 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA
   #  - open5gs-dbctl add_ue_with_apn 999700000000002 465B5CE8B199B49FAA5F0A2EE238A6BC E8ED289DEBA952E4283B54E88E6183CA internet

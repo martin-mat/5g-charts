@@ -44,4 +44,7 @@ spec:
         - /bin/bash
         - -c
         - "tail -f /dev/null"
+        {{- with .Values.populate.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
 {{- end }}

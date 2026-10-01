@@ -217,12 +217,17 @@ affinity: {}
 nodeSelector: {}
 ## open5gs-upf container's resource requests and limits
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
-## @param resources.requests [object] The requested resources for the init container
-## @param resources.limits The resources limits for the init container
+## @param resources.requests [object] The requested resources for the container
+## @param resources.limits [object] The resources limits for the container
+## Sized for a test or lab installation; raise them for a deployment that carries load.
 ##
 resources:
-  requests: {}
-  limits: {}
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
 ## Configure Pods Security Context
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
 ## @param podSecurityContext.enabled Enable open5gs-upf pods' Security Context
