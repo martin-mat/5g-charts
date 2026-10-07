@@ -23,7 +23,7 @@ concurrency:
 jobs:
   cert:
     # Forks that enable scheduled workflows do not run it.
-    if: github.repository == 'Gradiant/5g-charts'
+    if: github.repository == 'martin-mat/5g-charts'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
