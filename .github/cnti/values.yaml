@@ -29,3 +29,4 @@ smf:
   config:
     pcrf:
       enabled: false
+# probe
