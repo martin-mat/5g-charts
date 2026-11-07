@@ -1,0 +1,169 @@
+# Fork only: verifies the dedicated ServiceAccount change. Not for upstream.
+name: SA verify (fork)
+on:
+  push:
+    branches: [sa-verify]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: azure/setup-helm@v4
+        with:
+          version: v4.3.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: helm/chart-testing-action@v2.8.0
+      - name: ct lint against upstream main
+        run: |
+          git remote add upstream https://github.com/Gradiant/5g-charts
+          git fetch -q upstream main
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          ct list-changed --remote upstream --target-branch main
+          ct lint --remote upstream --target-branch main
+
+  render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@v4
+        with:
+          version: v4.3.0
+      - name: Render and check every pod's ServiceAccount
+        run: |
+          set -euo pipefail
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build charts/open5gs >/dev/null
+          cat > /tmp/check.py <<'PY'
+          import sys, yaml
+          docs = [d for d in yaml.safe_load_all(sys.stdin) if d]
+          sas = {d["metadata"]["name"]: d for d in docs if d["kind"] == "ServiceAccount"}
+          expect = sys.argv[1]
+          bad = 0
+          for d in docs:
+              if d["kind"] not in ("Deployment", "StatefulSet"):
+                  continue
+              spec = d["spec"]["template"]["spec"]
+              sa = spec.get("serviceAccountName", "default")
+              if expect == "own":
+                  ok = sa != "default" and sa in sas and sas[sa].get("automountServiceAccountToken") is False
+              else:
+                  ok = sa == expect and sa not in sas
+              print(("ok  " if ok else "BAD ") + d["kind"] + "/" + d["metadata"]["name"] + " -> " + sa)
+              bad += not ok
+          print(f"{len(sas)} ServiceAccounts rendered")
+          sys.exit(1 if bad else 0)
+          PY
+          check() { python3 /tmp/check.py "$@"; }
+          echo "== chart defaults (every component the umbrella enables, populate included)"
+          helm template open5gs charts/open5gs -n open5gs | check own
+          echo "== the CNTi job's values"
+          helm template open5gs charts/open5gs -n open5gs -f .github/cnti/values.yaml | check own
+          echo "== create false: the previous behaviour, the namespace's default"
+          sets=""
+          for c in amf ausf bsf hss mme nrf nssf pcf pcrf scp sepp sgwc sgwu smf udm udr upf webui; do sets="$sets --set $c.serviceAccount.create=false"; done
+          helm template open5gs charts/open5gs -n open5gs $sets --set mongodb.serviceAccount.create=false --set populate.serviceAccount.create=false | check default
+          echo "== create false with a name: that account, none created"
+          sets=""
+          for c in amf ausf bsf hss mme nrf nssf pcf pcrf scp sepp sgwc sgwu smf udm udr upf webui; do sets="$sets --set $c.serviceAccount.create=false --set $c.serviceAccount.name=mine"; done
+          helm template open5gs charts/open5gs -n open5gs $sets --set mongodb.serviceAccount.create=false --set mongodb.serviceAccount.name=mine --set populate.serviceAccount.create=false --set populate.serviceAccount.name=mine | check mine
+
+  install-and-upgrade:
+    # MongoDB 8.0 does not start on Linux kernels 6.19 through 7.0.13.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          path: branch
+      - uses: actions/checkout@v4
+        with:
+          repository: Gradiant/5g-charts
+          ref: main
+          persist-credentials: false
+          path: main
+      - uses: azure/setup-helm@v4
+        with:
+          version: v4.3.0
+      - uses: helm/kind-action@v1.15.0
+        with:
+          version: v0.33.0
+          node_image: ${{ env.NODE_IMAGE }}
+          kubectl_version: v1.37.0
+          wait: 120s
+      - name: Install upstream main with the chart's defaults
+        run: |
+          set -euo pipefail
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build main/charts/open5gs >/dev/null
+          helm dependency build branch/charts/open5gs >/dev/null
+          helm install open5gs main/charts/open5gs -n open5gs --create-namespace --wait --timeout 15m
+          kubectl get pods -n open5gs -o custom-columns='POD:.metadata.name,SA:.spec.serviceAccountName,READY:.status.containerStatuses[*].ready'
+      - name: Upgrade to this branch
+        run: |
+          set -euo pipefail
+          helm upgrade open5gs branch/charts/open5gs -n open5gs --wait --timeout 15m
+          kubectl rollout status deployment -n open5gs --timeout=10m
+          kubectl rollout status statefulset -n open5gs --timeout=10m
+      - name: Every pod Ready, on its own ServiceAccount, without a token
+        run: |
+          set -euo pipefail
+          sleep 30
+          kubectl get pods -n open5gs -o custom-columns='POD:.metadata.name,SA:.spec.serviceAccountName,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'
+          kubectl get sa -n open5gs -o custom-columns='SA:.metadata.name,AUTOMOUNT:.automountServiceAccountToken'
+          kubectl get pods -n open5gs -o json | python3 -c '
+          import json, sys
+          bad = 0
+          for p in json.load(sys.stdin)["items"]:
+              name = p["metadata"]["name"]
+              sa = p["spec"].get("serviceAccountName", "default")
+              token = any(v.get("projected") and any("serviceAccountToken" in s for s in v["projected"].get("sources", [])) for v in p["spec"].get("volumes", []))
+              ready = all(c.get("ready") for c in p["status"].get("containerStatuses", []))
+              ok = sa != "default" and not token and ready and p["status"].get("phase") == "Running"
+              print(("ok  " if ok else "BAD ") + f"{name}: sa={sa} token={token} ready={ready}")
+              bad += not ok
+          sys.exit(1 if bad else 0)'
+          helm status open5gs -n open5gs | head -8
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get pods -n open5gs -o wide || true
+          kubectl get events -n open5gs --sort-by=.lastTimestamp | tail -40 || true
+
+  cnti:
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [cert, dedicated_service_account]
+    name: cnti (${{ matrix.test }})
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      CNTI_TESTSUITE_GENERIC_OPERATION_TIMEOUT: "180"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build chart dependencies
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build charts/open5gs
+      - uses: lfn-cnti/testsuite-action@3c0e163cbbdde302cdd9abb9dbe8c2cbd6a72c71 # v1.4.0
+        with:
+          version: v2.4.1
+          cnf_config: .github/cnti/cnti-testsuite.yaml
+          install_timeout: 1200
+          tests: ${{ matrix.test }}
+          fail_on_failure: "false"
