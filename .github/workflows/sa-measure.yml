@@ -13,8 +13,7 @@ jobs:
       matrix:
         ref:
           - { name: main, repo: Gradiant/5g-charts, sha: a4670c0f10260eacb6d39e7f42f52d682faea664 }
-          - { name: pr250, repo: Gradiant/5g-charts, sha: ac739fb3f4073efc20d146ec9a4e5637be4bb2ee }
-        test: [dedicated_service_account, resource_requests]
+        test: [cert]
     name: ${{ matrix.test }} (${{ matrix.ref.name }})
     runs-on: ubuntu-22.04
     timeout-minutes: 60
@@ -42,3 +41,36 @@ jobs:
         run: |
           kubectl get pods -n open5gs -o custom-columns='POD:.metadata.name,SA:.spec.serviceAccountName,AUTOMOUNT:.spec.automountServiceAccountToken' || true
           kubectl get sa -n open5gs || true
+
+  fresh-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        ref:
+          - { name: main, repo: Gradiant/5g-charts, sha: a4670c0f10260eacb6d39e7f42f52d682faea664 }
+          - { name: branch, repo: martin-mat/5g-charts, sha: c427b4be2221cb524d8971d26df84eac8719e1b9 }
+    name: fresh install, defaults (${{ matrix.ref.name }})
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.ref.repo }}
+          ref: ${{ matrix.ref.sha }}
+          persist-credentials: false
+      - uses: azure/setup-helm@v4
+        with:
+          version: v4.3.0
+      - uses: helm/kind-action@v1.15.0
+        with:
+          version: v0.33.0
+          node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          kubectl_version: v1.37.0
+          wait: 120s
+      - name: Install with the chart's defaults, then restarts after 2 minutes
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build charts/open5gs >/dev/null
+          helm install open5gs charts/open5gs -n open5gs --create-namespace --wait --timeout 15m
+          sleep 120
+          kubectl get pods -n open5gs -o custom-columns='POD:.metadata.name,SA:.spec.serviceAccountName,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount'
