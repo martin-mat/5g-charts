@@ -30,7 +30,7 @@ jobs:
   # badge, and the only ones with a write token. Forks that enable scheduled
   # workflows do not run either job.
   essential:
-    if: github.repository == 'Gradiant/5g-charts' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.repository == 'martin-mat/5g-charts' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     # MongoDB 8.0 does not start on Linux kernels 6.19 through 7.0.13.
     # Ubuntu 22.04 runners use the compatible 6.8 kernel line.
     runs-on: ubuntu-22.04
@@ -84,7 +84,7 @@ jobs:
   # branches: the same steps with a read-only token. The action publishes the
   # badge only from the default branch, so nothing is published here.
   essential-pr:
-    if: github.repository == 'Gradiant/5g-charts' && (github.event_name == 'pull_request' || github.ref != 'refs/heads/main')
+    if: github.repository == 'martin-mat/5g-charts' && (github.event_name == 'pull_request' || github.ref != 'refs/heads/main')
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     permissions:
