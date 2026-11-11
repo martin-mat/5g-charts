@@ -41,6 +41,10 @@ Helm chart to deploy Open5gs services on Kubernetes.
 | file://../open5gs-webui | webui(open5gs-webui) | ~2.4.0 |
 | https://charts.bitnami.com/bitnami | common | 2.x.x |
 
+[![CNTi essential](https://github.com/Gradiant/5g-charts/raw/badges/cnti-badge.svg)](https://github.com/Gradiant/5g-charts/actions/workflows/cnti.yml)
+
+The badge shows the [CNTi Test Suite](https://github.com/lfn-cnti/testsuite)'s essential tests against the 5G core of this chart, run weekly by [`.github/workflows/cnti.yml`](https://github.com/Gradiant/5g-charts/blob/main/.github/workflows/cnti.yml).
+
 ## Health probes
 
 5G SBI components, WebUI and UPF enable startup probes and remove the previous
